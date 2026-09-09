@@ -1,0 +1,9 @@
+{
+  "name": "Inventario de etiquetas de precio",
+  "short_name": "Etiquetas",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#17324d",
+  "lang": "es"
+}
