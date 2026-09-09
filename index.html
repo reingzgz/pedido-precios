@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#17324d">
-<title>Inventario de etiquetas de precio · v5</title>
+<title>Inventario de etiquetas de precio · v6</title>
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--ink:#18212b;--muted:#687481;--line:#dfe5ea;--brand:#17324d;--brand2:#246b5f;--ok:#137333;--warn:#9a5b00;--bad:#b42318;--soft:#eef2f5;--blue:#0b57d0}
@@ -23,7 +23,7 @@ main{padding:18px 22px 55px}.card{background:#fff;border:1px solid var(--line);b
 </style>
 </head>
 <body>
-<header><div class="wrap"><h1>Inventario de etiquetas de precio <span style="font-size:13px;opacity:.75">v5</span></h1><p class="sub">Stock teórico actualizado con Salidas, previsión por Tecleado, pedidos en camino e histórico de pedidos. El Maestro y los Excel se procesan en el navegador.</p><div class="topbar"><span class="chip">Previsión: hasta 15 días</span><span class="chip">Reetiquetado: configurable</span><span class="chip">Seguridad adaptativa</span><span class="chip">Histórico: repositorio GitHub privado</span></div></div></header>
+<header><div class="wrap"><h1>Inventario de etiquetas de precio <span style="font-size:13px;opacity:.75">v6</span></h1><p class="sub">Stock teórico actualizado con Salidas, previsión por Tecleado, pedidos en camino e histórico de pedidos. El Maestro y los Excel se procesan en el navegador.</p><div class="topbar"><span class="chip">Previsión: hasta 15 días</span><span class="chip">Reetiquetado: configurable</span><span class="chip">Seguridad adaptativa</span><span class="chip">Histórico: repositorio GitHub privado</span></div></div></header>
 <main class="wrap">
 <div class="tabs"><button class="tab active" data-tab="calcPanel">Cálculo</button><button class="tab" data-tab="cloudPanel">Nube e histórico</button><button class="tab" data-tab="historyPanel">Pedidos</button><button class="tab" data-tab="helpPanel">Cómo funciona</button></div>
 
@@ -31,8 +31,8 @@ main{padding:18px 22px 55px}.card{background:#fff;border:1px solid var(--line);b
   <div class="grid">
     <div class="card upload"><h3>1 · Stock físico / catálogo</h3><p>PRECIO · matricula · STOCK REAL(etiquetas). Solo es imprescindible la primera vez o cuando hagas un recuento.</p><label class="drop" for="fInventory"><strong>Seleccionar stock</strong><span>Excel de inventario</span></label><input id="fInventory" type="file" accept=".xlsx,.xls,.xlsm"><div id="sInventory" class="state">Sin archivo</div></div>
     <div class="card upload"><h3>2 · Maestro</h3><p>MCCT o MODELO/CALIDAD/COLOR/TALLA + PVP_ROJO/AZUL/UK/USA.</p><label class="drop" for="fMaster"><strong>Seleccionar Maestro</strong><span>Maestro actualizado</span></label><input id="fMaster" type="file" accept=".xlsx,.xls,.xlsm"><div id="sMaster" class="state">Sin archivo</div></div>
-    <div class="card upload"><h3>3 · Tecleado</h3><p>Etiquetas de fila + Suma de TECLEADO UNITS. Admite varios archivos.</p><label class="drop" for="fTyped"><strong>Seleccionar Tecleado</strong><span>Uno o varios Excel</span></label><input id="fTyped" type="file" multiple accept=".xlsx,.xls,.xlsm"><div id="sTyped" class="state">Sin archivo</div></div>
-    <div class="card upload"><h3>4 · Salidas</h3><p>Etiquetas de fila + Suma de SALIDAS UNITS. Admite varios archivos.</p><label class="drop" for="fOut"><strong>Seleccionar Salidas</strong><span>Uno o varios Excel</span></label><input id="fOut" type="file" multiple accept=".xlsx,.xls,.xlsm"><div id="sOut" class="state">Sin archivo</div></div>
+    <div class="card upload"><h3>3 · Tecleado</h3><p>Busca automáticamente la hoja con Etiquetas de fila + Suma de TECLEADO UNITS. No usa la hoja bruta por tamaño.</p><label class="drop" for="fTyped"><strong>Seleccionar Tecleado</strong><span>Uno o varios Excel</span></label><input id="fTyped" type="file" multiple accept=".xlsx,.xls,.xlsm"><div id="sTyped" class="state">Sin archivo</div></div>
+    <div class="card upload"><h3>4 · Salidas</h3><p>Busca automáticamente la hoja con Etiquetas de fila + Suma de SALIDAS ... UNITS. No usa la hoja bruta por tamaño.</p><label class="drop" for="fOut"><strong>Seleccionar Salidas</strong><span>Uno o varios Excel</span></label><input id="fOut" type="file" multiple accept=".xlsx,.xls,.xlsm"><div id="sOut" class="state">Sin archivo</div></div>
   </div>
 
   <div class="card section">
@@ -103,15 +103,47 @@ function bestSheet(wb,prefer=[]){for(const p of prefer){const n=wb.SheetNames.fi
 async function readWorkbook(file){if(!window.XLSX)throw new Error('No se ha cargado el lector Excel. Comprueba Internet y recarga.');const ab=await file.arrayBuffer();return XLSX.read(ab,{type:'array',cellDates:true})}
 function findHeaderRow(rows,terms){let best=0,bs=-1;for(let r=0;r<Math.min(rows.length,40);r++){const H=(rows[r]||[]).map(normHead);let s=0;for(const t of terms)if(H.some(h=>h.includes(normHead(t))))s++;if(s>bs){bs=s;best=r}}return best}
 function idx(h,terms){const H=h.map(normHead);for(const t of terms){const T=normHead(t);let i=H.findIndex(x=>x===T);if(i>=0)return i;i=H.findIndex(x=>x.includes(T));if(i>=0)return i}return-1}
-function detectGeneric(rows){const hr=findHeaderRow(rows,['ETIQUETAS DE FILA','TECLEADO UNITS','SALIDAS UNITS','UNITS']);const h=rows[hr]||[];let code=idx(h,['ETIQUETAS DE FILA','MCCT','CODIGO','COD']);let units=idx(h,['SUMA DE TECLEADO UNITS','SUMA DE SALIDAS UNITS','TECLEADO UNITS','SALIDAS UNITS','UNITS','UNIDADES','UDS','CANTIDAD']);if(code<0)code=0;if(units<0){let best=-1,bcount=0;for(let c=0;c<h.length;c++){let count=0;for(let r=hr+1;r<Math.min(rows.length,hr+80);r++)if(typeof (rows[r]||[])[c]==='number')count++;if(count>bcount&&c!==code){best=c;bcount=count}}units=best>=0?best:'__ONE__'}return{hr,code,units,headers:h}}
-function aggregateGeneric(files){const sums=new Map();for(const f of files){const d=f.detect;for(let r=d.hr+1;r<f.rows.length;r++){const row=f.rows[r]||[];const raw=String(row[d.code]??'').trim();if(!raw||/TOTAL GENERAL|GRAND TOTAL|^TOTAL$/i.test(raw))continue;const code=normCode(raw);if(!code)continue;const u=d.units==='__ONE__'?1:num(row[d.units]);if(!u)continue;sums.set(code,(sums.get(code)||0)+u)}}return sums}
+function detectGeneric(rows,kind){
+  const unitTerms=kind==='typed'
+    ? ['SUMA DE TECLEADO UNITS','TECLEADO UNITS','TECLEADO UNIDADES','TECLEADO UDS']
+    : ['SUMA DE SALIDAS DEVOLUCIONES UNITS','SUMA DE SALIDAS UNITS','SALIDAS DEVOLUCIONES UNITS','SALIDAS UNITS','SALIDAS UNIDADES','SALIDAS UDS'];
+  const hr=findHeaderRow(rows,['ETIQUETAS DE FILA',...unitTerms]);
+  const h=rows[hr]||[];
+  const code=idx(h,['ETIQUETAS DE FILA','MCCT','MOCACOTA','MOCACO','CODIGO','COD']);
+  const units=idx(h,unitTerms);
+  if(code<0||units<0) throw new Error((kind==='typed'?'Tecleado':'Salidas')+': no encuentro las columnas exactas de código y unidades. Debe existir "Etiquetas de fila" y una columna "Suma de ... UNITS".');
+  return{hr,code,units,headers:h};
+}
+function sheetPreview(ws,maxRows=40){
+  const ref=ws['!ref']||'A1'; const rg=XLSX.utils.decode_range(ref);
+  const end={r:Math.min(rg.e.r,rg.s.r+maxRows-1),c:Math.min(rg.e.c,30)};
+  return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:false,range:{s:rg.s,e:end}});
+}
+function findFlowSheet(wb,kind){
+  let best=null;
+  for(const name of wb.SheetNames){
+    const ws=wb.Sheets[name]; const preview=sheetPreview(ws,50);
+    try{
+      const d=detectGeneric(preview,kind);
+      const h=(preview[d.hr]||[]).map(normHead);
+      const exactCode=h.some(x=>x==='ETIQUETAS DE FILA');
+      const exactUnit=h.some(x=>kind==='typed'?x.includes('TECLEADO')&&x.includes('UNIT'):x.includes('SALIDAS')&&x.includes('UNIT'));
+      const score=(exactCode?10:0)+(exactUnit?10:0)+(normHead(name)==='HOJA2'?2:0);
+      if(!best||score>best.score)best={name,ws,score};
+    }catch(e){}
+  }
+  if(!best)throw new Error((kind==='typed'?'Tecleado':'Salidas')+': no encuentro una hoja con "Etiquetas de fila" y la columna de unidades.');
+  const rows=matrix(best.ws),detect=detectGeneric(rows,kind);
+  return{name:best.name,rows,detect};
+}
+function aggregateGeneric(files){const sums=new Map();for(const f of files){const d=f.detect;for(let r=d.hr+1;r<f.rows.length;r++){const row=f.rows[r]||[];const raw=String(row[d.code]??'').trim();if(!raw||/TOTAL GENERAL|GRAND TOTAL|^TOTAL$/i.test(raw))continue;const code=normCode(raw);if(!code)continue;const u=num(row[d.units]);if(!u)continue;sums.set(code,(sums.get(code)||0)+u)}}return sums}
 function parseInventory(wb){const rows=matrix(bestSheet(wb));let hr=findHeaderRow(rows,['PRECIO','MATRICULA','STOCK REAL']);const h=rows[hr]||[];const im=idx(h,['MATRICULA']),is=idx(h,['STOCK REAL']),ip=idx(h,['PRECIO']),ii=idx(h,['PENDIENTE POR','PEDIDOS EN CAMINO']);if(im<0||is<0||ip<0)throw new Error('Stock: no encuentro PRECIO, matricula y STOCK REAL(etiquetas).');const items=[];for(let r=hr+1;r<rows.length;r++){const row=rows[r]||[];const m=String(row[im]??'').trim().toUpperCase();if(!/^E\d+/.test(m))continue;const prices=parsePriceText(row[ip]);if(prices.some(x=>x==null))continue;items.push({matricula:m,prices,key:priceKey(...prices),stock:num(row[is]),incoming:ii>=0?num(row[ii]):0})}if(!items.length)throw new Error('Stock: no se encontraron matrículas válidas.');return items}
-function parseMaster(wb){const rows=matrix(bestSheet(wb,['DATOS SRA']));const hr=findHeaderRow(rows,['MODELO','CALIDAD','COLOR','TALLA','PVP_ROJO']);const h=rows[hr]||[];const im=idx(h,['MODELO']),iq=idx(h,['CALIDAD']),ic=idx(h,['COLOR']),it=idx(h,['TALLA']),iro=idx(h,['PVP_ROJO']),iaz=idx(h,['PVP_AZUL']),iuk=idx(h,['PVP_UK']),ius=idx(h,['PVP_USA']),imc=idx(h,['MCCT']);if([iro,iaz,iuk,ius].some(x=>x<0))throw new Error('Maestro: faltan columnas PVP.');const byCode=new Map(),conflicts=new Set();for(let r=hr+1;r<rows.length;r++){const row=rows[r]||[];let code='';if(im>=0&&iq>=0&&ic>=0&&it>=0&&[row[im],row[iq],row[ic],row[it]].every(v=>v!==null&&v!==''))code=mcctFromParts(row[im],row[iq],row[ic],row[it]);else if(imc>=0)code=normCode(row[imc]);if(!code)continue;const k=priceKey(row[iro],row[iaz],row[iuk],row[ius]);if(byCode.has(code)&&byCode.get(code)!==k)conflicts.add(code);else byCode.set(code,k)}if(!byCode.size)throw new Error('Maestro: no se pudieron construir MCCT.');return{byCode,conflicts}}
+function parseMaster(wb){const rows=matrix(bestSheet(wb,['DATOS SRA']));const hr=findHeaderRow(rows,['MCCT','PVP_ROJO','PVP_AZUL','PVP_UK','PVP_USA']);const h=rows[hr]||[];const im=idx(h,['MODELO']),iq=idx(h,['CALIDAD']),ic=idx(h,['COLOR']),it=idx(h,['TALLA']),iro=idx(h,['PVP_ROJO']),iaz=idx(h,['PVP_AZUL']),iuk=idx(h,['PVP_UK']),ius=idx(h,['PVP_USA']),imc=idx(h,['MCCT']);if([iro,iaz,iuk,ius].some(x=>x<0))throw new Error('Maestro: faltan columnas PVP_ROJO, PVP_AZUL, PVP_UK o PVP_USA.');const byCode=new Map(),conflicts=new Set();for(let r=hr+1;r<rows.length;r++){const row=rows[r]||[];let code='';if(imc>=0&&row[imc]!==null&&row[imc]!=='')code=normCode(row[imc]);if(!code&&im>=0&&iq>=0&&ic>=0&&it>=0&&[row[im],row[iq],row[ic],row[it]].every(v=>v!==null&&v!==''))code=mcctFromParts(row[im],row[iq],row[ic],row[it]);if(!code)continue;const prices=[row[iro],row[iaz],row[iuk],row[ius]];if(prices.some(v=>v===null||v===''))continue;const k=priceKey(...prices);if(byCode.has(code)&&byCode.get(code)!==k)conflicts.add(code);else byCode.set(code,k)}if(!byCode.size)throw new Error('Maestro: no se pudieron construir MCCT.');return{byCode,conflicts}}
 function parseLastOrder(wb){const rows=matrix(bestSheet(wb));const hr=findHeaderRow(rows,['MATRICULA','UDS']);const h=rows[hr]||[];const im=idx(h,['MATRICULA']),iu=idx(h,['UDS','UNIDADES','CANTIDAD']);const priceCols=[...Array(h.length).keys()].filter(i=>['EUR','GBP','USD'].includes(normHead(h[i])));if(im<0||iu<0)throw new Error('Pedido: faltan MATRÍCULA y Uds.');const lines=[];for(let r=hr+1;r<rows.length;r++){const row=rows[r]||[];const m=String(row[im]??'').trim().toUpperCase();if(!/^E\d+/.test(m))continue;const units=num(row[iu]);if(units<=0)continue;const prices=priceCols.slice(0,4).map(i=>num(row[i]));while(prices.length<4)prices.push(0);lines.push({matricula:m,prices,units})}if(!lines.length)throw new Error('Pedido sin líneas válidas.');return lines}
 function defaultCloud(){return{version:2,updatedAt:null,catalog:{},stockTheory:{},lastOutByMat:{},orders:[],snapshots:[],settings:{relabelPct:.60,safetyDays:3,leadDays:7,serviceZ:1.645,multiple:1000}}}
 const state={inventoryWb:null,masterWb:null,typed:[],out:[],lastOrder:null,result:null,cloud:defaultCloud(),cloudConnected:false,cloudSha:null};
 function setState(id,text,ok=true){const e=$(id);e.textContent=text;e.className='state '+(ok?'ok':'bad')}
-async function loadGeneric(fileList,kind){const arr=[];for(const file of fileList){const wb=await readWorkbook(file),rows=matrix(bestSheet(wb));arr.push({name:file.name,rows,detect:detectGeneric(rows)})}state[kind]=arr;const agg=aggregateGeneric(arr);setState(kind==='typed'?'sTyped':'sOut',`${arr.length} archivo(s) · TOTAL LEÍDO: ${fmt([...agg.values()].reduce((a,b)=>a+b,0))} uds`)}
+async function loadGeneric(fileList,kind){const arr=[];for(const file of fileList){const wb=await readWorkbook(file),sel=findFlowSheet(wb,kind);arr.push({name:file.name,sheet:sel.name,rows:sel.rows,detect:sel.detect})}state[kind]=arr;const agg=aggregateGeneric(arr);const total=[...agg.values()].reduce((a,b)=>a+b,0);const sheets=[...new Set(arr.map(x=>x.sheet))].join(', ');setState(kind==='typed'?'sTyped':'sOut',`${arr.length} archivo(s) · hoja: ${sheets} · ${fmt(agg.size)} códigos · TOTAL LEÍDO: ${fmt(total)} uds`)}
 $('fInventory').onchange=async e=>{try{const f=e.target.files[0];if(!f)return;state.inventoryWb=await readWorkbook(f);const items=parseInventory(state.inventoryWb);setState('sInventory',`${f.name} · ${items.length} matrículas · ${fmt(items.reduce((a,x)=>a+x.stock,0))} etiquetas`)}catch(err){setState('sInventory','Error: '+err.message,false)}};
 $('fMaster').onchange=async e=>{try{const f=e.target.files[0];if(!f)return;state.masterWb=await readWorkbook(f);const m=parseMaster(state.masterWb);setState('sMaster',`${f.name} · ${fmt(m.byCode.size)} MCCT`)}catch(err){setState('sMaster','Error: '+err.message,false)}};
 $('fTyped').onchange=e=>loadGeneric([...e.target.files],'typed').catch(err=>setState('sTyped','Error: '+err.message,false));
